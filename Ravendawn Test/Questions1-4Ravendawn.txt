@@ -1,0 +1,149 @@
+Answer to Q1:
+-- Adding comment allows all devs can read and understand the code more easily
+-- Declaring local variables will help avoid changing every value we use in each scope of the code (if the code grows, it could be a headache).
+local storageId = 1000
+-- Assuming that 1 means that the store is not empty and -1 is empty;
+local notEmpty = 1
+local empty = -1  
+
+-- Function to release player storage
+local function releaseStorage(player)
+    -- We should use "pcall" to handle any potential errors that may occur in player:setStorageValue()
+    local success, errorMsg = pcall(player.setStorageValue, player, storageId, empty)
+    if not success then
+        print("Error releasing player storage:", errorMsg)
+    end
+end
+
+-- Called when a player logs out of the game
+function onLogout(player)
+    -- If the player has something on his Storage
+    if player:getStorageValue(storageId) == notEmpty then
+        -- Call the "releaseStorage" function to release the storage
+        -- I use "pcall" again, this time to handle any potential errors that may occur in addEvent()
+        local success, errorMsg = pcall(addEvent, releaseStorage, 0, player)  -- 0 delay for immediate execution
+        if not success then
+            print("Error of addEvent(releaseStorage) function on that player ", errorMsg)
+        end
+    end
+    return true
+end
+
+
+
+
+
+Answer to Q2:
+
+function printSmallGuildNames(memberCount, db)
+	-- this method is supposed to print names of all guilds that have less than memberCount max members.
+    -- We can check if the database connection is valid.
+    if not db or type(db) ~= "table" then
+        print("Error: Invalid database connection provided.")
+        return
+    end
+
+    -- Also, we can check if memberCount is a valid positive number (otherwise, the value has not sense).
+    if type(memberCount) ~= "number" or memberCount <= 0 then
+        print("Error: memberCount must be a positive number.")
+        return
+    end
+
+    -- We can catch posible errors on "err" variable, and use Parameterized query to prevent SQL injections using the placeholder "?", and giving it a value when we call the storeQuery function.
+    local selectGuildQuery = "SELECT name FROM guilds WHERE max_members < ?;"
+    local resultId, err = db.storeQuery(selectGuildQuery, memberCount)
+
+    if err then
+        print("Error executing the query: " .. err)
+        return
+    end
+
+    -- Adittionaly, we can handle case when no guilds are found.
+    if not resultId or #resultId == 0 then
+        print("No guilds found with less than " .. memberCount .. " max members.")
+    else
+        -- For last, we need to iterate over the results and print the guild names, otherwise we will get only the first result (I use a "_" to determinate that i don't want to use the iteration index). 
+        for _, row in ipairs(resultId) do
+            print(row.name)
+        end
+    end
+end
+
+
+
+
+Answer Q3:
+
+-- i change the old function name to "removePlayerFromParty" to be more descriptive about how function works, and i use camelCase becouse functions used to be in this way.
+function removePlayerFromParty(playerId, memberName)
+    -- Get the player object using the playerId
+    local player = Player(playerId)
+    
+    -- Get the player's party
+    local party = player:getParty()
+    
+    -- Iterate over the party members (i use _ instead of i on index to be clear that we don't want to use it, and use variable "member" instead of "v" to make the code more readable)
+    for _, member in pairs(party:getMembers()) do
+        -- Here i check if the iterated member's name matches the provided memberName (it's more efficient to compare two names instead of two entire player objects, assuming that every player name it's unique), also we assume that players objet has a get to bring their names.
+        if member:getName() == memberName then
+            -- If a match is found, remove the member from the party
+            party:removeMember(member)
+            
+            -- Exit the function after removing the member
+            return
+        end
+    end
+end
+
+
+
+
+
+Answer Q4:
+
+void Game::addItemToPlayer(const std::string& recipient, uint16_t itemId)
+{
+    // Get a pointer to the online player with the given name
+    Player* player = g_game.getPlayerByName(recipient);
+    Player* tempPlayer = nullptr; // I decided to use a temporary pointer "tempPlayer" to hold a Player object
+
+    // If the player is not online
+    if (!player) {
+        // Create a new Player object dynamically
+        tempPlayer = new Player(nullptr);
+
+        // Try to load the player's data
+        if (!IOLoginData::loadPlayerByName(tempPlayer, recipient)) {
+        // If loading the player's data fails, clean up the dynamically allocated memory to prevent a memory leak
+   			printf("Failed loading player data.");
+			delete tempPlayer;
+            return;
+        }
+
+        // If loading the player's data succeeds, assign the tempPlayer pointer to the player pointer
+        player = tempPlayer;
+    }
+
+    // create a new Item object with the given itemId
+    Item* item = Item::CreateItem(itemId);
+    if (!item) {
+        // If creating the Item object fails, clean up Player object to prevent a memory leak
+        if (tempPlayer) {
+			printf("Failed creating the item.");
+            delete tempPlayer;
+		}
+        return;
+    }
+
+    // Add the created item to the player's inbox
+    g_game.internalAddItem(player->getInbox(), item, INDEX_WHEREEVER, FLAG_NOLIMIT);
+
+    // If the player was loaded from storage (i.e., was offline)
+    if (tempPlayer) {
+        // save the player's data back to storage
+        IOLoginData::savePlayer(tempPlayer);
+
+        // Clean up the dynamically allocated Player object to prevent a memory leak
+        delete tempPlayer;
+    }
+}

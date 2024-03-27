@@ -1,0 +1,10 @@
+Module
+  name: game_button
+  description: Button Example
+  author: Cetrax
+  website: https://example.com
+  sandboxed: true
+  scripts: [ button.lua ]
+  @onLoad: init()
+  @onUnload: destroy()
+  reload: true

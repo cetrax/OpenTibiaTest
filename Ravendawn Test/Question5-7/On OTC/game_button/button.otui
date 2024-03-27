@@ -1,0 +1,12 @@
+MainWindow
+  id: buttonWindow
+  !text: tr('Button')
+  size: 500 500
+  @onEscape: self:hide()
+
+  Button
+    id: button
+    !text: tr('Jump!')
+    margin-left: 5
+    margin-top: 5
+

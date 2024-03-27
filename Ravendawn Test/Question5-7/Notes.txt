@@ -1,0 +1,4 @@
+Problems I still need to solve:
+1- Figure out how to change or add Tibia.dat and Tibia.otfi sprites.
+2- Determine how to handle sprites with multiple animations without encountering bugs (e.g., IceTornado).
+3- Find out how to modify the "X" and "Y" positions of window elements (e.g., Buttons).
